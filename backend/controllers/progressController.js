@@ -78,6 +78,48 @@ exports.completeLevel = async (req, res) => {
   }
 };
 
+exports.getLevelLeaderboard = async (req, res) => {
+  try {
+    const levelNumber = Number(req.params.levelNumber);
+    const level = await Level.findOne({ levelNumber });
+    if (!level) return res.status(404).json({ message: "Level not found" });
+
+    const entries = await Progress.find({ level: level._id, completed: true })
+      .sort({ bestTimeMs: 1 })
+      .limit(20)
+      .populate("user", "name");
+
+    res.json({
+      levelNumber,
+      leaderboard: entries.map((p, i) => ({
+        rank: i + 1,
+        name: p.user?.name || "Unknown",
+        bestTimeMs: p.bestTimeMs,
+        bestMoves: p.bestMoves,
+        stars: p.stars,
+      })),
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to load leaderboard", error: err.message });
+  }
+};
+
+exports.getGlobalLeaderboard = async (req, res) => {
+  try {
+    const users = await User.find().sort({ totalStars: -1 }).limit(20).select("name totalStars");
+
+    res.json({
+      leaderboard: users.map((u, i) => ({
+        rank: i + 1,
+        name: u.name,
+        totalStars: u.totalStars,
+      })),
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to load leaderboard", error: err.message });
+  }
+};
+
 exports.getSummary = async (req, res) => {
   try {
     const totalLevels = await Level.countDocuments();
