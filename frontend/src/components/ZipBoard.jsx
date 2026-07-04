@@ -45,6 +45,23 @@ const ZipBoard = forwardRef(function ZipBoard(
   const walls = useMemo(() => new Set(puzzle.walls), [puzzle.walls]);
   const checkpointMap = puzzle.checkpoints;
 
+  // The cell holding the final (highest-numbered) checkpoint. The path must
+  // end here for the board to count as complete - simply filling every
+  // remaining cell after passing the last number should NOT win the game.
+  const lastCheckpointCell = useMemo(() => {
+    const entries = Object.entries(checkpointMap);
+    if (entries.length === 0) return null;
+    let bestCell = null;
+    let bestOrder = -Infinity;
+    for (const [cellStr, order] of entries) {
+      if (order > bestOrder) {
+        bestOrder = order;
+        bestCell = Number(cellStr);
+      }
+    }
+    return bestCell;
+  }, [checkpointMap]);
+
   useEffect(() => {
     setUserPath([]);
     setIsDragging(false);
@@ -147,11 +164,14 @@ const ZipBoard = forwardRef(function ZipBoard(
   const handlePointerUp = useCallback(() => setIsDragging(false), []);
 
   useEffect(() => {
-    if (userPath.length === total && !wonRef.current) {
+    const boardFilled = userPath.length === total;
+    const endsOnLastCheckpoint =
+      lastCheckpointCell !== null && userPath[userPath.length - 1] === lastCheckpointCell;
+    if (boardFilled && endsOnLastCheckpoint && !wonRef.current) {
       wonRef.current = true;
       onWin?.(userPath);
     }
-  }, [userPath, total, onWin]);
+  }, [userPath, total, onWin, lastCheckpointCell]);
 
   const pathPoints = useMemo(
     () =>
@@ -169,7 +189,10 @@ const ZipBoard = forwardRef(function ZipBoard(
     [puzzle.path, size]
   );
 
-  const won = userPath.length === total;
+  const won =
+    userPath.length === total &&
+    lastCheckpointCell !== null &&
+    userPath[userPath.length - 1] === lastCheckpointCell;
 
   return (
     <div
