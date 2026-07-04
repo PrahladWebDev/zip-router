@@ -68,6 +68,14 @@ function validateSolution(level, submittedPath) {
     return { valid: false, reason: "Not all checkpoints were visited" };
   }
 
+  if (totalCheckpoints > 0) {
+    const lastCell = submittedPath[submittedPath.length - 1];
+    const lastCellCheckpoint = checkpoints.get(String(lastCell));
+    if (lastCellCheckpoint !== totalCheckpoints) {
+      return { valid: false, reason: "Path must end on the final checkpoint" };
+    }
+  }
+
   return { valid: true };
 }
 
