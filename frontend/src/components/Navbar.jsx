@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { LogOut, User, Grid3x3 } from "lucide-react";
+import { LogOut, User, Grid3x3, Trophy } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 export default function Navbar() {
@@ -23,6 +23,9 @@ export default function Navbar() {
           <div className="flex items-center gap-3 font-mono text-xs">
             <Link to="/levels" className="flex items-center gap-1 text-slate-400 hover:text-cyan-300 transition-colors">
               <Grid3x3 size={14} /> LEVELS
+            </Link>
+            <Link to="/leaderboard" className="flex items-center gap-1 text-slate-400 hover:text-cyan-300 transition-colors">
+              <Trophy size={14} /> LEADERBOARD
             </Link>
             <Link to="/profile" className="flex items-center gap-1 text-slate-400 hover:text-cyan-300 transition-colors">
               <User size={14} /> {user.name}
