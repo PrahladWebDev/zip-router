@@ -16,7 +16,7 @@ export default function Navbar() {
   const handleLogout = async () => {
     setSidebarOpen(false);
     await logout();
-    navigate("/login");
+    navigate("/");
   };
 
   return (
