@@ -6,6 +6,7 @@ import Register from "./pages/Register";
 import Levels from "./pages/Levels";
 import Game from "./pages/Game";
 import Profile from "./pages/Profile";
+import Leaderboard from "./pages/Leaderboard";
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
@@ -34,6 +35,7 @@ export default function App() {
       <Route path="/levels" element={<PrivateRoute><Levels /></PrivateRoute>} />
       <Route path="/game/:levelNumber" element={<PrivateRoute><Game /></PrivateRoute>} />
       <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+      <Route path="/leaderboard" element={<PrivateRoute><Leaderboard /></PrivateRoute>} />
       <Route path="*" element={<Navigate to="/levels" replace />} />
     </Routes>
   );
