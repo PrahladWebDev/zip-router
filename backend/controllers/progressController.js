@@ -1,0 +1,104 @@
+const Level = require("../models/Level");
+const Progress = require("../models/Progress");
+const User = require("../models/User");
+const { validateSolution } = require("../utils/validatePath");
+
+function starsForTime(timeMs, level) {
+  if (timeMs <= level.parTimeMs) return 3;
+  if (timeMs <= level.goodTimeMs) return 2;
+  return 1;
+}
+
+exports.completeLevel = async (req, res) => {
+  try {
+    const levelNumber = Number(req.params.levelNumber);
+    const { timeMs, path } = req.body;
+
+    if (typeof timeMs !== "number" || timeMs <= 0) {
+      return res.status(400).json({ message: "A valid timeMs is required" });
+    }
+
+    const level = await Level.findOne({ levelNumber });
+    if (!level) return res.status(404).json({ message: "Level not found" });
+
+    if (levelNumber > 1) {
+      const prevProgress = await Progress.findOne({
+        user: req.user._id,
+        levelNumber: levelNumber - 1,
+      });
+      if (!prevProgress?.completed) {
+        return res.status(403).json({ message: "Level is locked" });
+      }
+    }
+
+    const check = validateSolution(level, path);
+    if (!check.valid) {
+      return res.status(400).json({ message: `Invalid solution: ${check.reason}` });
+    }
+
+    const stars = starsForTime(timeMs, level);
+    const moves = path.length - 1;
+
+    let progress = await Progress.findOne({ user: req.user._id, level: level._id });
+    if (!progress) {
+      progress = new Progress({
+        user: req.user._id,
+        level: level._id,
+        levelNumber: level.levelNumber,
+      });
+    }
+
+    progress.attempts += 1;
+    const isNewBest = progress.bestTimeMs === null || timeMs < progress.bestTimeMs;
+    if (isNewBest) {
+      progress.bestTimeMs = timeMs;
+      progress.bestMoves = moves;
+      progress.stars = Math.max(progress.stars, stars);
+    }
+    progress.completed = true;
+    progress.completedAt = progress.completedAt || new Date();
+    await progress.save();
+
+    const allProgress = await Progress.find({ user: req.user._id });
+    const totalStars = allProgress.reduce((sum, p) => sum + p.stars, 0);
+    await User.findByIdAndUpdate(req.user._id, { totalStars });
+
+    const nextLevel = await Level.findOne({ levelNumber: levelNumber + 1 });
+
+    res.json({
+      completed: true,
+      isNewBest,
+      stars: progress.stars,
+      bestTimeMs: progress.bestTimeMs,
+      bestMoves: progress.bestMoves,
+      nextLevelNumber: nextLevel ? nextLevel.levelNumber : null,
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to record completion", error: err.message });
+  }
+};
+
+exports.getSummary = async (req, res) => {
+  try {
+    const totalLevels = await Level.countDocuments();
+    const progressDocs = await Progress.find({ user: req.user._id }).sort({ levelNumber: 1 });
+    const completedCount = progressDocs.filter((p) => p.completed).length;
+    const totalStars = progressDocs.reduce((sum, p) => sum + p.stars, 0);
+
+    res.json({
+      totalLevels,
+      completedCount,
+      totalStars,
+      maxStars: totalLevels * 3,
+      levels: progressDocs.map((p) => ({
+        levelNumber: p.levelNumber,
+        completed: p.completed,
+        stars: p.stars,
+        bestTimeMs: p.bestTimeMs,
+        attempts: p.attempts,
+      })),
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to load summary", error: err.message });
+  }
+};
