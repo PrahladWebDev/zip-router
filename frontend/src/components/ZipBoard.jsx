@@ -195,13 +195,24 @@ const ZipBoard = forwardRef(function ZipBoard(
     [userPath, size]
   );
 
-  const solutionPoints = useMemo(
-    () =>
-      (puzzle.path || [])
-        .map((idx) => `${(idx % size) + 0.5},${Math.floor(idx / size) + 0.5}`)
-        .join(" "),
-    [puzzle.path, size]
-  );
+  const solutionPath = puzzle.path || [];
+
+  // LinkedIn-Zip-style hint: only reveal the single next step from wherever the
+  // player currently is, not the whole route. We locate the player's last cell
+  // within the stored solution and point to the cell right after it.
+  const hintTarget = useMemo(() => {
+    if (!showSolution || won || solutionPath.length === 0) return null;
+
+    if (userPath.length === 0) {
+      return { fromCell: null, toCell: solutionPath[0] };
+    }
+
+    const last = userPath[userPath.length - 1];
+    const pos = solutionPath.indexOf(last);
+    if (pos === -1 || pos + 1 >= solutionPath.length) return null; // off-route or already at the end
+
+    return { fromCell: solutionPath[pos], toCell: solutionPath[pos + 1] };
+  }, [showSolution, won, userPath, solutionPath]);
 
   const won =
     userPath.length === total &&
@@ -224,6 +235,7 @@ const ZipBoard = forwardRef(function ZipBoard(
       <style>{`
         @keyframes dashflow { to { stroke-dashoffset: -8; } }
         @keyframes shake { 0%,100%{transform:translateX(0);} 25%{transform:translateX(-3px);} 75%{transform:translateX(3px);} }
+        @keyframes hintPulse { 0%,100%{opacity:0.55;} 50%{opacity:1;} }
         .zip-shake { animation: shake 0.18s ease-in-out; }
         .zip-flow { animation: dashflow 0.6s linear infinite; }
       `}</style>
@@ -257,18 +269,30 @@ const ZipBoard = forwardRef(function ZipBoard(
           );
         })}
 
-        {showSolution && (
-          <polyline
-            points={solutionPoints}
-            fill="none"
-            stroke="#475569"
-            strokeWidth={0.06}
-            strokeDasharray="0.12 0.12"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            opacity={0.6}
-          />
-        )}
+        {hintTarget && (() => {
+          const toR = Math.floor(hintTarget.toCell / size) + 0.5;
+          const toC = (hintTarget.toCell % size) + 0.5;
+          let angle = 0;
+          if (hintTarget.fromCell !== null) {
+            const fromR = Math.floor(hintTarget.fromCell / size);
+            const fromC = hintTarget.fromCell % size;
+            const toRi = Math.floor(hintTarget.toCell / size);
+            const toCi = hintTarget.toCell % size;
+            angle = Math.atan2(toRi - fromR, toCi - fromC) * (180 / Math.PI);
+          }
+          return (
+            <g style={{ animation: "hintPulse 1s ease-in-out infinite" }}>
+              <circle cx={toC} cy={toR} r={0.3} fill="none" stroke="#FBBF24" strokeWidth={0.05} opacity={0.85} />
+              {hintTarget.fromCell !== null && (
+                <polygon
+                  points="-0.15,-0.12 0.15,0 -0.15,0.12"
+                  fill="#FBBF24"
+                  transform={`translate(${toC} ${toR}) rotate(${angle})`}
+                />
+              )}
+            </g>
+          );
+        })()}
 
         {Array.from(walls).map((wkey) => {
           const [a, b] = wkey.split("_").map(Number);
