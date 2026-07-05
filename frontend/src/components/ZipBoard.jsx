@@ -212,11 +212,29 @@ const ZipBoard = forwardRef(function ZipBoard(
       return { fromCell: null, toCell: solutionPath[0] };
     }
 
-    const last = userPath[userPath.length - 1];
-    const pos = solutionPath.indexOf(last);
-    if (pos === -1 || pos + 1 >= solutionPath.length) return null; // off-route or already at the end
+    // Walk backwards from the player's most recent move to find the last
+    // cell that still lies on the stored solution route. This way, if the
+    // player's latest move(s) strayed off-route, the hint still picks up
+    // from the last point of agreement instead of giving up entirely.
+    let pos = -1;
+    let fromCell = null;
+    for (let i = userPath.length - 1; i >= 0; i--) {
+      const idx = solutionPath.indexOf(userPath[i]);
+      if (idx !== -1) {
+        pos = idx;
+        fromCell = userPath[i];
+        break;
+      }
+    }
 
-    return { fromCell: solutionPath[pos], toCell: solutionPath[pos + 1] };
+    if (pos === -1 || pos + 1 >= solutionPath.length) return null; // fully off-route or already at the end
+
+    const nextCell = solutionPath[pos + 1];
+    // Don't point at a cell the player has already placed elsewhere on
+    // their (partly off-route) path - it's occupied and can't be the next move.
+    if (userPath.includes(nextCell)) return null;
+
+    return { fromCell, toCell: nextCell };
   }, [showSolution, won, userPath, solutionPath]);
 
   return (
