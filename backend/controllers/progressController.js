@@ -36,10 +36,14 @@ exports.completeLevel = async (req, res) => {
       return res.status(400).json({ message: `Invalid solution: ${check.reason}` });
     }
 
+    let progress = await Progress.findOne({ user: req.user._id, level: level._id });
+    if (progress?.completed) {
+      return res.status(409).json({ message: "Level already completed - it can't be replayed" });
+    }
+
     const stars = starsForTime(timeMs, level);
     const moves = path.length - 1;
 
-    let progress = await Progress.findOne({ user: req.user._id, level: level._id });
     if (!progress) {
       progress = new Progress({
         user: req.user._id,
@@ -57,6 +61,8 @@ exports.completeLevel = async (req, res) => {
     }
     progress.completed = true;
     progress.completedAt = progress.completedAt || new Date();
+    progress.savedPath = [];
+    progress.savedElapsedMs = 0;
     await progress.save();
 
     const allProgress = await Progress.find({ user: req.user._id });
@@ -75,6 +81,42 @@ exports.completeLevel = async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ message: "Failed to record completion", error: err.message });
+  }
+};
+
+exports.saveProgress = async (req, res) => {
+  try {
+    const levelNumber = Number(req.params.levelNumber);
+    const { path, elapsedMs } = req.body;
+
+    if (!Array.isArray(path) || typeof elapsedMs !== "number") {
+      return res.status(400).json({ message: "path (array) and elapsedMs (number) are required" });
+    }
+
+    const level = await Level.findOne({ levelNumber });
+    if (!level) return res.status(404).json({ message: "Level not found" });
+
+    let progress = await Progress.findOne({ user: req.user._id, level: level._id });
+    if (progress?.completed) {
+      // Nothing to save - a completed level can't be replayed.
+      return res.json({ saved: false });
+    }
+
+    if (!progress) {
+      progress = new Progress({
+        user: req.user._id,
+        level: level._id,
+        levelNumber: level.levelNumber,
+      });
+    }
+
+    progress.savedPath = path;
+    progress.savedElapsedMs = elapsedMs;
+    await progress.save();
+
+    res.json({ saved: true });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to save progress", error: err.message });
   }
 };
 
