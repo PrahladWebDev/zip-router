@@ -86,12 +86,14 @@ export default function Game() {
   }, [levelNumber]);
 
   // Timer runs continuously as soon as the level is open (already resumed-adjusted
-  // above), stopping only once the level is won or already-cleared.
+  // above), stopping only once the level is won or already-cleared. `loading` is
+  // in the deps so this re-fires the moment startTimeRef gets set after the
+  // level finishes loading (mutating a ref alone wouldn't re-trigger the effect).
   useEffect(() => {
-    if (result || alreadyCleared || startTimeRef.current === null) return;
+    if (loading || result || alreadyCleared || startTimeRef.current === null) return;
     const id = setInterval(() => setElapsed(Date.now() - startTimeRef.current), 250);
     return () => clearInterval(id);
-  }, [result, alreadyCleared]);
+  }, [loading, result, alreadyCleared]);
 
   // Keep refs in sync so the debounced/unmount/hide autosave below always
   // reads the latest path and elapsed time, not a stale closure.
