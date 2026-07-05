@@ -332,7 +332,7 @@ export default function Game() {
               showSolution ? "bg-slate-500/20 border-slate-400 text-slate-200" : "bg-[#0F1626] border-[#1E2A44] text-slate-300 hover:border-cyan-400 hover:text-cyan-300"
             }`}
           >
-            <Sparkles size={14} /> HINT PATH
+            <Sparkles size={14} /> HINT
           </button>
         </div>
 
