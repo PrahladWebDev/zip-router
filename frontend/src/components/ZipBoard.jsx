@@ -197,6 +197,11 @@ const ZipBoard = forwardRef(function ZipBoard(
 
   const solutionPath = puzzle.path || [];
 
+  const won =
+    userPath.length === total &&
+    lastCheckpointCell !== null &&
+    userPath[userPath.length - 1] === lastCheckpointCell;
+
   // LinkedIn-Zip-style hint: only reveal the single next step from wherever the
   // player currently is, not the whole route. We locate the player's last cell
   // within the stored solution and point to the cell right after it.
@@ -213,11 +218,6 @@ const ZipBoard = forwardRef(function ZipBoard(
 
     return { fromCell: solutionPath[pos], toCell: solutionPath[pos + 1] };
   }, [showSolution, won, userPath, solutionPath]);
-
-  const won =
-    userPath.length === total &&
-    lastCheckpointCell !== null &&
-    userPath[userPath.length - 1] === lastCheckpointCell;
 
   return (
     <div
