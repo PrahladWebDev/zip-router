@@ -212,29 +212,28 @@ const ZipBoard = forwardRef(function ZipBoard(
       return { fromCell: null, toCell: solutionPath[0] };
     }
 
-    // Walk backwards from the player's most recent move to find the last
-    // cell that still lies on the stored solution route. This way, if the
-    // player's latest move(s) strayed off-route, the hint still picks up
-    // from the last point of agreement instead of giving up entirely.
-    let pos = -1;
-    let fromCell = null;
-    for (let i = userPath.length - 1; i >= 0; i--) {
-      const idx = solutionPath.indexOf(userPath[i]);
-      if (idx !== -1) {
-        pos = idx;
-        fromCell = userPath[i];
-        break;
+    const currentCell = userPath[userPath.length - 1];
+    const currentPos = solutionPath.indexOf(currentCell);
+
+    // Player's current cell is still on the solution route - hint the next
+    // forward step as usual.
+    if (currentPos !== -1) {
+      if (currentPos + 1 >= solutionPath.length) return null; // already at the end
+      const nextCell = solutionPath[currentPos + 1];
+      if (userPath.includes(nextCell)) return null; // that cell is already occupied elsewhere
+      return { fromCell: currentCell, toCell: nextCell, backtrack: false };
+    }
+
+    // Player has strayed off the solution route. Instead of silently pointing
+    // further ahead as if nothing happened, tell them to go BACK to the last
+    // cell in their own path that is still on the route.
+    for (let i = userPath.length - 2; i >= 0; i--) {
+      if (solutionPath.includes(userPath[i])) {
+        return { fromCell: currentCell, toCell: userPath[i], backtrack: true };
       }
     }
 
-    if (pos === -1 || pos + 1 >= solutionPath.length) return null; // fully off-route or already at the end
-
-    const nextCell = solutionPath[pos + 1];
-    // Don't point at a cell the player has already placed elsewhere on
-    // their (partly off-route) path - it's occupied and can't be the next move.
-    if (userPath.includes(nextCell)) return null;
-
-    return { fromCell, toCell: nextCell };
+    return null;
   }, [showSolution, won, userPath, solutionPath]);
 
   return (
@@ -298,13 +297,14 @@ const ZipBoard = forwardRef(function ZipBoard(
             const toCi = hintTarget.toCell % size;
             angle = Math.atan2(toRi - fromR, toCi - fromC) * (180 / Math.PI);
           }
+          const hintColor = hintTarget.backtrack ? "#F87171" : "#FBBF24";
           return (
             <g style={{ animation: "hintPulse 1s ease-in-out infinite" }}>
-              <circle cx={toC} cy={toR} r={0.3} fill="none" stroke="#FBBF24" strokeWidth={0.05} opacity={0.85} />
+              <circle cx={toC} cy={toR} r={0.3} fill="none" stroke={hintColor} strokeWidth={0.05} opacity={0.85} />
               {hintTarget.fromCell !== null && (
                 <polygon
                   points="-0.15,-0.12 0.15,0 -0.15,0.12"
-                  fill="#FBBF24"
+                  fill={hintColor}
                   transform={`translate(${toC} ${toR}) rotate(${angle})`}
                 />
               )}
