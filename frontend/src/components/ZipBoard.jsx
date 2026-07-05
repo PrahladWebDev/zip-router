@@ -212,28 +212,33 @@ const ZipBoard = forwardRef(function ZipBoard(
       return { fromCell: null, toCell: solutionPath[0] };
     }
 
-    const currentCell = userPath[userPath.length - 1];
-    const currentPos = solutionPath.indexOf(currentCell);
-
-    // Player's current cell is still on the solution route - hint the next
-    // forward step as usual.
-    if (currentPos !== -1) {
-      if (currentPos + 1 >= solutionPath.length) return null; // already at the end
-      const nextCell = solutionPath[currentPos + 1];
-      if (userPath.includes(nextCell)) return null; // that cell is already occupied elsewhere
-      return { fromCell: currentCell, toCell: nextCell, backtrack: false };
-    }
-
-    // Player has strayed off the solution route. Instead of silently pointing
-    // further ahead as if nothing happened, tell them to go BACK to the last
-    // cell in their own path that is still on the route.
-    for (let i = userPath.length - 2; i >= 0; i--) {
-      if (solutionPath.includes(userPath[i])) {
-        return { fromCell: currentCell, toCell: userPath[i], backtrack: true };
+    // Walk the player's path in order, advancing along the solution route
+    // only when each step actually matches the NEXT expected cell in
+    // sequence. Just checking "does this cell exist somewhere in the
+    // solution" (the old approach) is wrong: a cell can appear later in the
+    // route even when the player reached it by straying off the correct
+    // order, and that must not be mistaken for real progress.
+    let expected = 0; // index into solutionPath of the next cell we expect
+    for (let i = 0; i < userPath.length; i++) {
+      if (expected < solutionPath.length && userPath[i] === solutionPath[expected]) {
+        expected += 1;
       }
     }
 
-    return null;
+    const currentCell = userPath[userPath.length - 1];
+    const onRoute = expected > 0 && currentCell === solutionPath[expected - 1];
+
+    if (onRoute) {
+      if (expected >= solutionPath.length) return null; // already at the end
+      const nextCell = solutionPath[expected];
+      if (userPath.includes(nextCell)) return null; // already occupied elsewhere
+      return { fromCell: currentCell, toCell: nextCell, backtrack: false };
+    }
+
+    // Current cell isn't the correct next step - tell the player to go back
+    // to the last cell where they really were on the route.
+    if (expected === 0) return null; // never got on route at all
+    return { fromCell: currentCell, toCell: solutionPath[expected - 1], backtrack: true };
   }, [showSolution, won, userPath, solutionPath]);
 
   return (
