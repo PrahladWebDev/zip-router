@@ -48,9 +48,11 @@ exports.getLevel = async (req, res) => {
     }
 
     const progress = await Progress.findOne({ user: req.user._id, level: level._id });
+    const nextLevel = await Level.findOne({ levelNumber: levelNumber + 1 }).select("levelNumber");
 
     res.json({
       puzzle: level.toPublicJSON(),
+      nextLevelNumber: nextLevel ? nextLevel.levelNumber : null,
       progress: progress
         ? {
             completed: progress.completed,
@@ -58,6 +60,8 @@ exports.getLevel = async (req, res) => {
             bestMoves: progress.bestMoves,
             stars: progress.stars,
             attempts: progress.attempts,
+            savedPath: progress.savedPath,
+            savedElapsedMs: progress.savedElapsedMs,
           }
         : null,
     });
