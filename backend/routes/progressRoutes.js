@@ -1,6 +1,7 @@
 const express = require("express");
 const {
   completeLevel,
+  saveProgress,
   getSummary,
   getLevelLeaderboard,
   getGlobalLeaderboard,
@@ -13,5 +14,6 @@ router.get("/summary", protect, getSummary);
 router.get("/leaderboard", protect, getGlobalLeaderboard);
 router.get("/leaderboard/:levelNumber", protect, getLevelLeaderboard);
 router.post("/:levelNumber/complete", protect, completeLevel);
+router.put("/:levelNumber/save", protect, saveProgress);
 
 module.exports = router;
