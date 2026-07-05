@@ -31,10 +31,10 @@ function wallLineCoords(a, b, size) {
  * onWin(userPath) is called once when the board is fully and correctly filled.
  */
 const ZipBoard = forwardRef(function ZipBoard(
-  { puzzle, onWin, onPathChange, resetToken, showSolution },
+  { puzzle, onWin, onPathChange, resetToken, showSolution, initialPath },
   ref
 ) {
-  const [userPath, setUserPath] = useState([]);
+  const [userPath, setUserPath] = useState(() => (initialPath && initialPath.length ? initialPath : []));
   const [isDragging, setIsDragging] = useState(false);
   const [invalidPulse, setInvalidPulse] = useState(0);
   const containerRef = useRef(null);
@@ -62,11 +62,25 @@ const ZipBoard = forwardRef(function ZipBoard(
     return bestCell;
   }, [checkpointMap]);
 
+  // New level loaded - seed with any saved in-progress path (resume), or start empty.
   useEffect(() => {
+    setUserPath(initialPath && initialPath.length ? initialPath : []);
+    setIsDragging(false);
+    wonRef.current = false;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [puzzle]);
+
+  // Manual RESET button - always clears fully, ignoring any saved path.
+  const isFirstResetToken = useRef(true);
+  useEffect(() => {
+    if (isFirstResetToken.current) {
+      isFirstResetToken.current = false;
+      return;
+    }
     setUserPath([]);
     setIsDragging(false);
     wonRef.current = false;
-  }, [resetToken, puzzle]);
+  }, [resetToken]);
 
   useImperativeHandle(ref, () => ({
     undo: () => setUserPath((prev) => (wonRef.current ? prev : prev.slice(0, -1))),
