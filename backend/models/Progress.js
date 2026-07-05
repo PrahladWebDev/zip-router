@@ -11,6 +11,11 @@ const progressSchema = new mongoose.Schema(
     stars: { type: Number, default: 0, min: 0, max: 3 },
     attempts: { type: Number, default: 0 },
     completedAt: { type: Date, default: null },
+    // In-progress (unfinished) attempt, kept so the player can resume exactly
+    // where they left off, with the same elapsed time, after closing the page.
+    // Cleared once the level is completed.
+    savedPath: { type: [Number], default: [] },
+    savedElapsedMs: { type: Number, default: 0 },
   },
   { timestamps: true }
 );
