@@ -24,11 +24,11 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           script: |
             echo "=== Pulling latest code ==="
-            cd /home/prahlad/ziprouter
+            cd /var/www/projects/ziprouter
             git pull origin main
 
             echo "=== Installing backend dependencies ==="
-            cd /home/prahlad/ziprouter/backend
+            cd /var/www/projects/ziprouter/backend
             npm install --omit=dev
 
             echo "=== Restarting API with PM2 ==="
@@ -72,7 +72,7 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT }}
           source: "frontend/dist/*"
-          target: "/home/prahlad/ziprouter/frontend/"
+          target: "/var/www/projects/ziprouter/frontend/"
           strip_components: 1
 
       - name: Reload Nginx
